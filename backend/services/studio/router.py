@@ -14,7 +14,7 @@ from backend.redis_client import is_rate_limited # type: ignore
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/studio", tags=["Studio"], version="3.0.0")
+router = APIRouter(prefix="/studio", tags=["Studio"])
 
 @router.post("/generate_image")
 async def gen_image(
@@ -24,7 +24,9 @@ async def gen_image(
     current_user: Optional[dict] = Depends(get_current_user_optional)
 ):
     try:
-        user_id = current_user.get("uid") if current_user else f"guest:{request.client.host}"
+        # ── Phase 40: Safe Request Access for Testing ────────────────
+        client_host = request.client.host if request.client else "127.0.0.1"
+        user_id = current_user.get("uid") if current_user else f"guest:{client_host}"
         user_tier = current_user.get("tier", "free") if current_user else "free"
         
         # ── Defensive: Rate Limiting ────────────────────────
@@ -51,6 +53,9 @@ async def gen_image(
             except Exception as e:
                 logger.error(f"[Studio] Credit deduction failed: {e}")
 
+        # Create Job Doc in Firestore first so polling doesn't 404
+        firestore_db.collection("jobs").document(job_id).set(job_data)
+
         if os.getenv("USE_CELERY", "true").lower() == "true":
             generate_image_task.delay(
                 job_id=job_id, 
@@ -73,6 +78,7 @@ async def gen_image(
         return {"status": "queued", "task_id": job_id, "message": "Image generation started."}
 
     except Exception as e:
+        logger.error(f"Image generation request failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={"error": str(e), "status": "failed"})
 
 @router.post("/generate_video")
@@ -83,7 +89,9 @@ async def gen_video(
     current_user: Optional[dict] = Depends(get_current_user_optional)
 ):
     try:
-        user_id = current_user.get("uid") if current_user else f"guest:{request.client.host}"
+        # ── Phase 40: Safe Request Access for Testing ────────────────
+        client_host = request.client.host if request.client else "127.0.0.1"
+        user_id = current_user.get("uid") if current_user else f"guest:{client_host}"
         user_tier = current_user.get("tier", "free") if current_user else "free"
         
         # ── Defensive: Rate Limiting ────────────────────────
@@ -110,6 +118,9 @@ async def gen_video(
             except Exception as e:
                 logger.error(f"[Studio] Credit deduction failed: {e}")
 
+        # Create Job Doc in Firestore first
+        firestore_db.collection("jobs").document(job_id).set(job_data)
+
         if os.getenv("USE_CELERY", "true").lower() == "true":
             generate_video_task.delay(
                 job_id=job_id, 
@@ -132,6 +143,7 @@ async def gen_video(
         return {"status": "queued", "task_id": job_id, "message": "Video synthesis started."}
 
     except Exception as e:
+        logger.error(f"Video generation request failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail={"error": str(e), "status": "failed"})
 
 @router.get("/task_status/{job_id}")

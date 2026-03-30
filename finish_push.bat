@@ -1,32 +1,39 @@
 @echo off
-echo 🚀 LEVI-AI v4.5 OMNIPRESENT — Global Launch Sync
+echo LEVI-AI v4.5 OMNIPRESENT - Global Launch Sync
 echo ------------------------------------------------
-echo [1/3] Staging all 45 phases of architectural updates...
+
+echo [1/4] Building Frontend Optimized Assets (CSS)...
+cd frontend
+call npm install
+call npm run build
+if %ERRORLEVEL% NEQ 0 goto :error
+cd ..
+
+echo [2/4] Staging all architectural updates...
 git add .
-if %errorlevel% neq 0 (
-    echo [ERROR] git add . failed.
-    pause
-    exit /b
+if %ERRORLEVEL% NEQ 0 goto :error
+
+echo [3/4] Committing the architectural sign-off (Phase 2 Fixes)...
+git commit -m "fix: critical pre-launch fixes - chat router, firebase config, json-logger, auth-race"
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] git commit was skipped or failed.
 )
 
-echo [2/3] Committing the architectural sign-off...
-git commit -m "feat: LEVI-AI v4.5 Omnipresent — Global Pulse & Live Telemetry"
-if %errorlevel% neq 0 (
-    echo [WARNING] git commit failed (maybe no changes?). Continuing to push...
-)
-
-echo [3/3] Synchronizing with GitHub (Branch: master)...
+echo [4/4] Synchronizing with GitHub (Branch: master)...
 git push origin master
-if %errorlevel% neq 0 (
-    echo [ERROR] git push failed. Attempting alternate branch (main)...
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] master push failed. Trying main...
     git push origin main
 )
 
-if %errorlevel% neq 0 (
-    echo [CRITICAL] Push failed on both master and main. Please check Internet or GitHub permissions.
-    pause
-    exit /b
-)
+if %ERRORLEVEL% NEQ 0 goto :error
 
-echo 🌌 LEVI-AI v4.5 Global Launch Successful!
+echo Global Launch Initiated!
+echo Check your Actions tab at: https://github.com/Blackdrg/LEVI-AI/actions
 pause
+exit /b 0
+
+:error
+echo [ERROR] A critical step failed. Please check the logs above.
+pause
+exit /b 1

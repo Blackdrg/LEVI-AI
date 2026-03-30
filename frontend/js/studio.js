@@ -81,7 +81,7 @@ async function synthesize(){
     const body={text,author:document.getElementById('author-input').value||'LEVI-AI',mood:currentStyle,background:document.getElementById('bg-input').value};
     
     // Using Retry Utility
-    const d = await fetchWithRetry(`${getApiBase()}/generate_image`, {
+    const d = await fetchWithRetry(`${getApiBase()}/studio/generate_image`, {
       method:'POST',
       body:JSON.stringify(body),
       headers:{'Content-Type':'application/json'}
@@ -133,8 +133,7 @@ async function pollTask(id,text){
   const poll = async () => {
     try {
       await window.waitForToken();
-      const r = await fetch(`${getApiBase()}/task_status/${id}`);
-      const d = await r.json();
+      const d = await fetchWithRetry(`${getApiBase()}/studio/task_status/${id}`);
 
       if ((d.status === 'completed' || d.status === 'done') && d.result) {
         setLoading(false);
@@ -223,7 +222,7 @@ async function makeVideo(){
     const body={text,author:document.getElementById('author-input').value||'LEVI-AI',mood:currentStyle};
     
     // Using Retry Utility
-    const d = await fetchWithRetry(`${getApiBase()}/generate_video`, {
+    const d = await fetchWithRetry(`${getApiBase()}/studio/generate_video`, {
       method:'POST',
       body:JSON.stringify(body),
       headers:{'Content-Type':'application/json'}
