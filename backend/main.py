@@ -176,8 +176,10 @@ async def lifespan(app: FastAPI):
             })
     except Exception as e:
         logger.critical(f"Startup check/cleanup failed: {e}")
-        if os.getenv("ENVIRONMENT") == "production": raise RuntimeError("STARTUP FAIL")
+        if os.getenv("ENVIRONMENT") == "production":
+             logger.error("CRITICAL: Initial database connection failed. Service may be degraded.")
     yield
+
 
 app = FastAPI(
     title="LEVI Quotes API",
@@ -200,8 +202,8 @@ async def strip_api_prefix(request: Request, call_next):
 # ─────────────────────────────────
 # Middleware & Rate Limiting
 # ─────────────────────────────────
-app.include_router(admin_router)
-app.include_router(persona_router)
+# app.include_router(admin_router)   # Moved to gateway.py for production
+# app.include_router(persona_router) # Moved to gateway.py for production
 
 @app.get("/health")
 async def health():
